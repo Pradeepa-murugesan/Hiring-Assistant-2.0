@@ -7,7 +7,7 @@ from src.utils.helpers import clean_and_parse_json
 def screen_resume_node(state) -> dict:
     print("---NODE: SCREENING RESUME (STRICT JSON MODE)---")
 
-    llm = ChatGroq(model_name="gemma2-9b-it", temperature=0)
+    llm = ChatGroq(model_name="qwen/qwen3-32b", temperature=0.3)
     
     resume_text = state["resume_content"]
     job_description_text = state["job_description"]
@@ -16,16 +16,16 @@ def screen_resume_node(state) -> dict:
     You are an expert AI recruitment assistant. Your task is to analyze the provided Resume against the Job Description and return a structured JSON object.
 
     **CRITICAL INSTRUCTIONS:**
-    1.  **Analyze Content:** Extract the candidate's full name, their email address, calculate a "matchScore" (0-100), and write a 2-3 sentence "summary".
+    1.  **Analyze Content:** Extract the candidate's full name, their email address, calculate a "matchScore" (0-100), and write a necessary content "summary".
     2.  **JSON FORMATTING IS MANDATORY:** You MUST return ONLY a single, valid JSON object.
     3.  **USE DOUBLE QUOTES:** All keys and all string values in the JSON object MUST be enclosed in double quotes (").
 
     **EXAMPLE OF A PERFECT OUTPUT:**
     {{
-        "candidateName": "Sanjay Kumar",
-        "candidateEmail": "sanjay.k@example.com",
+        "candidateName": "Pradeepa Murugesan",
+        "candidateEmail": "pradeepa.m@example.com",
         "matchScore": 85,
-        "summary": "Sanjay Kumar is a strong candidate with 5 years of Python experience, aligning well with the job requirements. His skills in AWS and Django are particularly relevant."
+        "summary": "Pradeepa is a strong candidate with 5 years of Python experience, aligning well with the job requirements. Her skills in AWS and Machine Learning are particularly relevant."
     }}
 
     **Job Description:**

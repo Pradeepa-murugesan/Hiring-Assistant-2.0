@@ -1,10 +1,10 @@
-
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Recruitment Assistant</title>
+    <!-- FIX: Added a simple SVG favicon to prevent the 404 error and give your app a browser tab icon -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -18,47 +18,48 @@
         .gradient-border-bad { border-image-source: linear-gradient(to bottom right, #f59e0b, #fbbf24); border-image-slice: 1; }
         .loader { height: 48px; width: 48px; border-radius: 50%; border: 4px solid #4f46e5; border-top-color: #1f2937; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .notification { position: fixed; top: 20px; right: 20px; padding: 1rem 1.5rem; border-radius: 0.5rem; color: white; font-weight: bold; z-index: 100; opacity: 0; transform: translateY(-20px); transition: all 0.3s ease-in-out; }
+        .notification { position: fixed; top: 20px; right: 20px; padding: 1rem 1.5rem; border-radius: 0.5rem; color: white; font-weight: bold; z-index: 1050; opacity: 0; transform: translateY(-20px); transition: all 0.3s ease-in-out; }
         .notification.show { opacity: 1; transform: translateY(0); }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+        .modal-overlay.show { opacity: 1; pointer-events: auto; }
+        .modal-content { background: #1f2937; padding: 2rem; border-radius: 1rem; width: 90%; max-width: 500px; transform: scale(0.95); transition: transform 0.3s ease; border: 1px solid #374151; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .modal-overlay.show .modal-content { transform: scale(1); }
     </style>
-    </head>
+</head>
 <body class="text-gray-300">
 
-    <div class="flex h-screen bg-gray-900 text-white">
+    <div id="notification-area"></div>
 
-        <div class="w-1/2 h-full flex flex-col p-8 border-r border-gray-700">
-            <header class="text-center mb-8">
+    <div class="flex h-screen bg-gray-900 text-white">
+        <!-- Left Column: Control Panel -->
+        <div class="w-1/2 h-full flex flex-col p-8 border-r border-gray-700 overflow-y-auto">
+             <header class="text-center mb-8">
                 <h1 class="text-4xl font-extrabold">AI Recruitment <span class="gradient-text">Assistant</span></h1>
                 <p class="mt-2 text-md text-gray-400">Your automated hiring workspace.</p>
             </header>
-
             <form id="upload-form" class="space-y-6 flex-grow flex flex-col">
-                <div>
+                 <div>
                     <label for="job_description_text" class="text-xl font-bold mb-3 text-white block">Step 1: Job Description</label>
                     <div class="relative">
-                        <textarea id="job_description_text" name="job_description_text" rows="10" class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg text-gray-300 focus:ring-2 focus:ring-indigo-500 transition placeholder-gray-500" placeholder="Enter notes like 'Python dev, 5 years, aws, flask' and click Generate... or paste a full JD."></textarea>
-                        <button type="button" id="generate-jd-btn" class="absolute bottom-3 right-3 bg-indigo-600 text-white font-semibold py-1 px-3 rounded-lg text-sm hover:bg-indigo-700 transition-transform transform hover:scale-105">✨ Generate with AI</button>
+                        <textarea id="job_description_text" name="job_description_text" rows="10" class="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg text-gray-300 focus:ring-2 focus:ring-indigo-500 transition placeholder-gray-500" placeholder="Enter notes or paste a full JD..."></textarea>
+                        <button type="button" id="generate-jd-btn" class="absolute bottom-3 right-3 bg-indigo-600 text-white font-semibold py-1 px-3 rounded-lg text-sm hover:bg-indigo-700 transition-transform transform hover:scale-105">✨ Generate</button>
                     </div>
                 </div>
-                
                 <div class="flex-grow flex flex-col">
                     <label for="resumes" class="text-xl font-bold mb-3 text-white block">Step 2: Candidate Resumes</label>
                     <label for="resumes" class="cursor-pointer border-2 border-dashed border-gray-600 hover:border-indigo-500 bg-gray-800/50 rounded-lg p-6 flex flex-col items-center justify-center text-center transition flex-grow">
                         <svg class="w-12 h-12 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                         <span class="text-gray-400">Click to Upload Resumes</span>
-                        <span id="resume-filenames" class="text-xs font-medium text-indigo-400 mt-2 max-w-full truncate"></span>
+                        <span id="resume-filenames" class="text-xs font-medium text-indigo-400 mt-2 max-w-full truncate px-4"></span>
                     </label>
                     <input type="file" id="resumes" name="resumes" class="hidden" multiple required>
                 </div>
-
                 <div class="pt-4">
-                    <button type="submit" class="w-full gradient-bg text-white font-bold py-3 px-6 rounded-lg text-lg hover:shadow-xl hover:shadow-indigo-500/30 focus:outline-none focus:ring-4 focus:ring-indigo-500/50 transition-transform transform hover:scale-105">
-                        Process Candidates
-                    </button>
+                    <button type="submit" class="w-full gradient-bg text-white font-bold py-3 px-6 rounded-lg text-lg hover:shadow-xl hover:shadow-indigo-500/30 focus:outline-none focus:ring-4 focus:ring-indigo-500/50 transition-transform transform hover:scale-105">Process Candidates</button>
                 </div>
             </form>
         </div>
-
+        <!-- Right Column: Results View -->
         <div class="w-1/2 h-full bg-gray-800 p-8 overflow-y-auto">
             <div id="results-container" class="space-y-6">
                  <div id="placeholder" class="text-center text-gray-600 pt-32 h-full flex flex-col justify-center items-center">
@@ -68,152 +69,250 @@
                 </div>
                 <div id="loader" class="hidden flex flex-col items-center justify-center text-center py-8">
                     <div class="loader"></div>
-                    <p id="loader-text" class="mt-4 text-lg font-medium text-gray-400">AI agents at work...</p>
+                    <p class="mt-4 text-lg font-medium text-gray-400">AI agents at work...</p>
                 </div>
             </div>
         </div>
     </div>
-<script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('upload-form');
-            const resumesInput = document.getElementById('resumes');
-            const resumeFilenamesSpan = document.getElementById('resume-filenames');
-            const resultsContainer = document.getElementById('results-container');
-            const loader = document.getElementById('loader');
-            const generateJdBtn = document.getElementById('generate-jd-btn');
-            const jdTextarea = document.getElementById('job_description_text');
-            const placeholder = document.getElementById('placeholder');
-            const notificationArea = document.getElementById('notification-area');
 
-            const showNotification = (message, isError = false) => {
-                const notif = document.createElement('div');
-                notif.className = `notification ${isError ? 'bg-red-600' : 'bg-indigo-600'}`;
-                notif.textContent = message;
-                notificationArea.appendChild(notif);
-                setTimeout(() => { notif.classList.add('show'); }, 10);
-                setTimeout(() => { notif.classList.remove('show'); setTimeout(() => notif.remove(), 300); }, 3000);
-            };
+    <!-- Professional modal for refinement feedback -->
+    <div id="refinement-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold text-white mb-4">Request AI Refinement</h3>
+            <p class="text-gray-400 mb-4">Please provide feedback for the AI to improve the email draft. (e.g., "Make it more formal," "Mention our company values of innovation.")</p>
+            <textarea id="refinement-feedback-input" class="w-full h-24 bg-gray-800 text-gray-200 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 border border-gray-600" placeholder="Your feedback..."></textarea>
+            <div class="flex justify-end gap-4 mt-6">
+                <button id="cancel-refinement-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition">Cancel</button>
+                <button id="submit-refinement-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition">Submit Feedback</button>
+            </div>
+        </div>
+    </div>
 
-            const displayError = (message) => {
-                resultsContainer.innerHTML = `<div class="bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg" role="alert"><p class="font-bold">Error</p><p>${message}</p></div>`;
-            };
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('upload-form');
+        const resumesInput = document.getElementById('resumes');
+        const resumeFilenamesSpan = document.getElementById('resume-filenames');
+        const resultsContainer = document.getElementById('results-container');
+        const loader = document.getElementById('loader');
+        const generateJdBtn = document.getElementById('generate-jd-btn');
+        const jdTextarea = document.getElementById('job_description_text');
+        const placeholder = document.getElementById('placeholder');
+        const notificationArea = document.getElementById('notification-area');
+        const refinementModal = document.getElementById('refinement-modal');
+        const refinementInput = document.getElementById('refinement-feedback-input');
+        const cancelRefinementBtn = document.getElementById('cancel-refinement-btn');
+        const submitRefinementBtn = document.getElementById('submit-refinement-btn');
 
-            const createResultCard = (result) => {
-                if (!result?.state?.screening_results) { return null; }
-                const { filename, state } = result;
-                const { screening_results = {}, drafted_email, final_status } = state;
-                const candidateName = screening_results.candidateName || "N/A";
-                const candidateEmail = screening_results.candidateEmail || "N/A";
-                const matchScore = screening_results.matchScore || 0;
-                const summary = screening_results.summary || "No summary available.";
-                const card = document.createElement('div');
-                card.className = 'bg-gray-900/50 backdrop-blur-sm p-6 rounded-2xl border';
-                const isGoodMatch = matchScore >= 70;
-                
-                if (isGoodMatch) {
-                    card.classList.add('gradient-border-good', 'border-2');
-                } else {
-                    card.classList.add('gradient-border-bad', 'border-2');
-                }
-                
-                let statusMessage = '';
-                if (final_status) {
-                    statusMessage = final_status;
-                } else if (drafted_email?.body) {
-                    statusMessage = 'Email sent successfully.';
-                } else if (isGoodMatch && (candidateEmail === 'N/A' || !candidateEmail)) {
-                    statusMessage = 'Candidate is a good match, but no email was found.';
-                } else {
-                    statusMessage = 'Candidate did not meet the minimum score.';
-                }
-                const draftedEmailBody = drafted_email?.body || '';
-                let emailSection = `<div class="mt-4 pt-4 border-t border-gray-700"><p class="text-sm font-medium text-gray-400">Status: <span class="font-semibold ${isGoodMatch ? 'text-indigo-400' : 'text-amber-400'}">${statusMessage}</span></p></div>`;
-                if (draftedEmailBody) {
-                    emailSection += `<div class="mt-4 p-4 bg-gray-800 rounded-lg text-sm text-gray-300 whitespace-pre-wrap border border-gray-700"><strong>Sent Email:</strong><br><br>${draftedEmailBody.replace(/\n/g, '<br>')}</div>`;
-                }
-                card.innerHTML = `
-                    <div class="flex justify-between items-start gap-4">
-                        <div><h3 class="text-xl font-bold text-white">${candidateName}</h3><p class="text-sm text-gray-400">${candidateEmail} (${filename})</p></div>
-                        <div class="text-right flex-shrink-0"><p class="text-sm text-gray-400">Match Score</p><p class="text-3xl font-bold ${isGoodMatch ? 'text-indigo-400' : 'text-amber-400'}">${matchScore}%</p></div>
+        const showNotification = (message, isError = false) => {
+            const notif = document.createElement('div');
+            notif.className = `notification ${isError ? 'bg-red-600' : 'bg-indigo-600'}`;
+            notif.textContent = message;
+            notificationArea.appendChild(notif);
+            setTimeout(() => { notif.classList.add('show'); }, 10);
+            setTimeout(() => { notif.classList.remove('show'); setTimeout(() => notif.remove(), 300); }, 3000);
+        };
+        const displayError = (message) => {
+            resultsContainer.innerHTML = `<div class="bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg" role="alert"><p class="font-bold">Error</p><p>${message}</p></div>`;
+        };
+        
+        const createResultCard = (result) => {
+            if (!result?.state?.screening_results) return null;
+            const { filename, state, is_paused, thread_id } = result;
+            const { screening_results = {}, drafted_email, final_status } = state;
+            const candidateName = screening_results.candidateName || "N/A";
+            const candidateEmail = screening_results.candidateEmail || "N/A";
+            const matchScore = screening_results.matchScore || 0;
+            const summary = screening_results.summary || "No summary available.";
+            const card = document.createElement('div');
+            card.id = `card-${thread_id}`;
+            card.className = 'bg-gray-900/50 backdrop-blur-sm p-6 rounded-2xl border transition-all duration-300';
+            const isGoodMatch = matchScore >= 70;
+            card.classList.add('border-2', isGoodMatch ? 'gradient-border-good' : 'gradient-border-bad');
+            
+            let statusSection;
+            if (is_paused) {
+                statusSection = `
+                <div class="mt-4 pt-4 border-t border-gray-700">
+                    <p class="text-sm font-medium text-yellow-400 mb-3">Status: Awaiting Approval</p>
+                    <div class="p-4 bg-gray-800 rounded-lg border border-gray-700">
+                        <strong>Drafted Email (Editable):</strong><br><br>
+                        <textarea id="email-body-${thread_id}" class="w-full h-48 bg-gray-700/50 text-gray-200 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 border border-gray-600">${drafted_email?.body || ''}</textarea>
                     </div>
-                    <div class="mt-4"><div class="w-full bg-gray-700 rounded-full h-2.5"><div class="h-2.5 rounded-full ${isGoodMatch ? 'gradient-bg' : 'bg-amber-500'}" style="width: ${matchScore}%"></div></div></div>
-                    <div class="mt-5"><h4 class="font-semibold text-gray-200">AI Summary:</h4><p class="mt-1 text-sm text-gray-400">${summary}</p></div>
-                    ${emailSection}`;
-                return card;
-            };
-
-            const displayResults = (results) => {
-                placeholder.classList.add('hidden');
-                resultsContainer.innerHTML = '';
-                if (!results || results.length === 0) {
-                    placeholder.classList.remove('hidden');
-                    return;
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <button data-thread-id="${thread_id}" data-decision="approve" class="hitl-btn col-span-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition">Approve & Send Original</button>
+                        <button data-thread-id="${thread_id}" data-decision="manual_edit_and_send" class="hitl-btn col-span-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Save Edits & Send</button>
+                        <button data-thread-id="${thread_id}" data-decision="refine" class="hitl-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition">Request AI Refinement</button>
+                        <button data-thread-id="${thread_id}" data-decision="reject" class="hitl-btn bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition">Reject Process</button>
+                    </div>
+                </div>`;
+            } else {
+                let statusMessage = final_status || (isGoodMatch ? 'Email sent successfully.' : 'Did not meet score.');
+                if (isGoodMatch && (!candidateEmail || candidateEmail === 'N/A')) statusMessage = 'Good match, but no email found.';
+                let emailSection = `<p class="text-sm font-medium text-gray-400">Status: <span class="font-semibold ${final_status && final_status.includes('Failed') ? 'text-red-400' : (isGoodMatch ? 'text-indigo-400' : 'text-amber-400')}">${statusMessage}</span></p>`;
+                if (drafted_email?.body && !final_status?.includes("Rejected") && !final_status?.includes("Failed")) {
+                    emailSection += `<div class="mt-4 p-4 bg-gray-800 rounded-lg text-sm text-gray-300 whitespace-pre-wrap border border-gray-700"><strong>Sent Email:</strong><br><br>${drafted_email.body.replace(/\n/g, '<br>')}</div>`;
                 }
-                results.forEach(result => {
-                    const card = createResultCard(result);
-                    if (card) resultsContainer.appendChild(card);
+                statusSection = `<div class="mt-4 pt-4 border-t border-gray-700">${emailSection}</div>`;
+            }
+
+            card.innerHTML = `
+                <div class="flex justify-between items-start gap-4">
+                    <div><h3 class="text-xl font-bold text-white">${candidateName}</h3><p class="text-sm text-gray-400">${candidateEmail} (${filename})</p></div>
+                    <div class="text-right flex-shrink-0"><p class="text-sm text-gray-400">Match</p><p class="text-3xl font-bold ${isGoodMatch ? 'text-indigo-400' : 'text-amber-400'}">${matchScore}%</p></div>
+                </div>
+                <div class="mt-4"><div class="w-full bg-gray-700 rounded-full h-2.5"><div class="h-2.5 rounded-full ${isGoodMatch ? 'gradient-bg' : 'bg-amber-500'}" style="width: ${matchScore}%"></div></div></div>
+                <div class="mt-5"><h4 class="font-semibold text-gray-200">AI Summary:</h4><p class="mt-1 text-sm text-gray-400">${summary}</p></div>
+                <div class="status-section">${statusSection}</div>`;
+            return card;
+        };
+        
+        const displayResults = (results) => {
+            placeholder.classList.add('hidden');
+            resultsContainer.innerHTML = '';
+            if (!results || results.length === 0) { placeholder.classList.remove('hidden'); return; }
+            results.forEach(result => {
+                const card = createResultCard(result);
+                if (card) resultsContainer.appendChild(card);
+            });
+        };
+        
+        const handleApprovalAction = async (threadId, decision, buttonEl) => {
+            const originalButtonHTML = buttonEl.innerHTML;
+            buttonEl.disabled = true;
+            buttonEl.innerHTML = `<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>`;
+
+            let payload = { thread_id: threadId, decision: decision };
+
+            if (decision === 'refine') {
+                refinementModal.classList.add('show');
+                refinementModal.dataset.threadId = threadId;
+                refinementModal.dataset.buttonSelector = `button[data-thread-id="${threadId}"][data-decision="refine"]`;
+                return;
+            
+            } else if (decision === 'manual_edit_and_send') {
+                const editedBody = document.getElementById(`email-body-${threadId}`).value;
+                payload.edited_email = editedBody;
+            }
+
+            try {
+                const response = await fetch('/resume', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
-            };
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Failed to process action.');
+                
+                const card = document.getElementById(`card-${threadId}`);
+                const updatedCard = createResultCard(result);
+                if (updatedCard && card) card.replaceWith(updatedCard);
+                showNotification(`Action '${decision}' processed successfully!`);
 
-            resumesInput.addEventListener('change', () => {
-                const files = resumesInput.files;
-                if (files.length > 0) {
-                    const fileNames = Array.from(files).map(f => f.name);
-                    resumeFilenamesSpan.textContent = fileNames.join(', ');
-                } else {
-                    resumeFilenamesSpan.textContent = '';
-                }
-            });
+            } catch (error) {
+                console.error('Action error:', error);
+                showNotification(error.message, true);
+                buttonEl.disabled = false;
+                buttonEl.innerHTML = originalButtonHTML;
+            }
+        };
 
-            generateJdBtn.addEventListener('click', async () => {
-                const notes = jdTextarea.value;
-                if (!notes.trim()) {
-                    showNotification('Please enter some notes to generate.', true);
-                    return;
-                }
-                generateJdBtn.textContent = 'Generating...';
-                generateJdBtn.disabled = true;
-                try {
-                    const response = await fetch('/generate_jd', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notes: notes }) });
-                    const data = await response.json();
-                    if (response.ok) {
-                        jdTextarea.value = data.job_description;
-                    } else {
-                        showNotification(data.error || 'An unknown error occurred.', true);
-                    }
-                } catch (error) {
-                    console.error("JD Generation Error:", error);
-                    showNotification("Failed to connect to the server.", true);
-                } finally {
-                    generateJdBtn.textContent = '✨ Generate with AI';
-                    generateJdBtn.disabled = false;
-                }
-            });
-
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                placeholder.classList.add('hidden');
-                resultsContainer.innerHTML = '';
-                loader.classList.remove('hidden');
-                resultsContainer.appendChild(loader);
-                const formData = new FormData(form);
-                try {
-                    const response = await fetch('/process', { method: 'POST', body: formData });
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(`Server error: ${response.statusText} - ${errorText}`);
-                    }
-                    const results = await response.json();
-                    displayResults(results);
-                } catch (error) {
-                    console.error('Processing error:', error);
-                    displayError('An error occurred. Please check the browser console for details.');
-                } finally {
-                    loader.classList.add('hidden');
-                }
-            });
+        resultsContainer.addEventListener('click', (e) => {
+            const button = e.target.closest('.hitl-btn');
+            if (button) {
+                handleApprovalAction(button.dataset.threadId, button.dataset.decision, button);
+            }
         });
-    </script>
+
+        cancelRefinementBtn.addEventListener('click', () => {
+            const buttonEl = document.querySelector(refinementModal.dataset.buttonSelector);
+            if (buttonEl) {
+                buttonEl.disabled = false;
+                buttonEl.innerHTML = '🤖 Request AI Refinement';
+            }
+            refinementModal.classList.remove('show');
+            refinementInput.value = '';
+        });
+
+        submitRefinementBtn.addEventListener('click', async () => {
+            const feedback = refinementInput.value;
+            const threadId = refinementModal.dataset.threadId;
+            const buttonEl = document.querySelector(refinementModal.dataset.buttonSelector);
+
+            if (!feedback.trim()) {
+                showNotification('Please provide feedback before submitting.', true);
+                return;
+            }
+
+            buttonEl.innerHTML = `<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>`;
+            refinementModal.classList.remove('show');
+            refinementInput.value = '';
+
+            const payload = { thread_id: threadId, decision: 'refine', feedback: feedback };
+
+            try {
+                const response = await fetch('/resume', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Failed to refine email.');
+
+                const emailTextarea = document.getElementById(`email-body-${threadId}`);
+                if (emailTextarea) {
+                    emailTextarea.value = result.state.drafted_email.body;
+                }
+                showNotification(`AI refinement successful!`);
+
+            } catch (error) {
+                console.error('Refinement error:', error);
+                showNotification(error.message, true);
+            } finally {
+                buttonEl.disabled = false;
+                buttonEl.innerHTML = 'Request AI Refinement';
+            }
+        });
+
+        resumesInput.addEventListener('change', () => {
+            const files = resumesInput.files;
+            resumeFilenamesSpan.textContent = files.length > 0 ? Array.from(files).map(f => f.name).join(', ') : '';
+        });
+        
+        generateJdBtn.addEventListener('click', async () => {
+            const notes = jdTextarea.value;
+            if (!notes.trim()) { showNotification('Please enter some notes to generate.', true); return; }
+            generateJdBtn.textContent = 'Generating...';
+            generateJdBtn.disabled = true;
+            try {
+                const response = await fetch('/generate_jd', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notes }), });
+                const data = await response.json();
+                if (response.ok) { jdTextarea.value = data.job_description; } else { showNotification(data.error || 'An unknown error occurred.', true); }
+            } catch (error) { showNotification("Failed to connect to the server.", true); }
+            finally { generateJdBtn.textContent = '✨ Generate'; generateJdBtn.disabled = false; }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            placeholder.classList.add('hidden');
+            resultsContainer.innerHTML = '';
+            loader.classList.remove('hidden');
+            resultsContainer.appendChild(loader);
+            const formData = new FormData(form);
+            try {
+                const response = await fetch('/process', { method: 'POST', body: formData });
+                if (!response.ok) { const errorText = await response.text(); throw new Error(`Server error: ${response.statusText} - ${errorText}`); }
+                const results = await response.json();
+                displayResults(results);
+            } catch (error) { // The stray underscore was here
+                console.error('Processing error:', error);
+                displayError('An error occurred. Please check the browser console for details.');
+            } finally {
+                loader.classList.add('hidden');
+            }
+        });
+    });
+  </script>
 </body>
 </html>
 
