@@ -20,6 +20,7 @@ from src.agents.job_posting_agent import generate_jd_from_notes
 from src.agents.resume_screening_agent import screen_resume_node
 from src.agents.candidate_communication_agent import draft_email_node, refine_email_with_feedback
 from src.agents.rejection_email_agent import draft_rejection_node
+from src.agents.summarization_agent import summarize_candidate_profile_node
 
 load_dotenv()
 app = Flask(__name__)
@@ -57,34 +58,51 @@ def send_email_node(state):
     except Exception as e:
         print(f"ERROR: Failed to send email. {e}")
         return {"final_status": f"Failed to send email: {e}"}
-
 class AgentState(TypedDict):
     job_description: str
     resume_content: str
     screening_results: dict
+    candidate_summary: dict  # 👈 NEW FIELD for the structured JSON summary
     drafted_email: Dict[str, str]
     final_status: str
     messages: Annotated[List[str], operator.add]
 
 workflow = StateGraph(AgentState)
 workflow.add_node("resume_screener", screen_resume_node)
+# 💡 NEW NODE: Add the summarization node
+workflow.add_node("profile_summarizer", summarize_candidate_profile_node)
 workflow.add_node("invitation_drafter", draft_email_node)
 workflow.add_node("rejection_drafter", draft_rejection_node)
 workflow.add_node("email_sender", send_email_node)
+
 workflow.set_entry_point("resume_screener")
 
-def route_after_screening(state):
+# 💡 UPDATED ROUTING FUNCTION: The routing now happens after summarization.
+# We first link the 'resume_screener' to the 'profile_summarizer'.
+workflow.add_edge("resume_screener", "profile_summarizer")
+
+
+# The conditional routing function remains the same, but its source node changes.
+def route_after_screening_and_summary(state):
+    # This logic uses the score determined by the original 'resume_screener' node
     match_score = state.get("screening_results", {}).get("matchScore", 0)
     return "invitation_drafter" if match_score >= 70 else "rejection_drafter"
 
-workflow.add_conditional_edges("resume_screener", route_after_screening, {"invitation_drafter": "invitation_drafter", "rejection_drafter": "rejection_drafter"})
+# 💡 UPDATED CONDITIONAL EDGE: Routing now starts from 'profile_summarizer'
+workflow.add_conditional_edges(
+    "profile_summarizer", 
+    route_after_screening_and_summary, 
+    {
+        "invitation_drafter": "invitation_drafter", 
+        "rejection_drafter": "rejection_drafter"
+    }
+)
 workflow.add_edge('invitation_drafter', 'email_sender')
 workflow.add_edge('rejection_drafter', 'email_sender')
 workflow.add_edge('email_sender', END)
 
 checkpointer = MemorySaver()
 recruitment_graph = workflow.compile(checkpointer=checkpointer, interrupt_before=["email_sender"])
-
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -177,4 +195,3 @@ def resume_workflow():
 
 if __name__ == '__main__':
     app.run(port=5001, debug=True)
-
